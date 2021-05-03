@@ -205,11 +205,12 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			break
 		}
 		node := api.PerconaMongodbNode{
-			ID:       string(pod.UID),
-			IP:       pod.Status.PodIP,
-			Port:     cr.Spec.Mongod.Net.Port,
-			PodName:  pod.ObjectMeta.Name,
-			NodeName: pod.Status.HostIP,
+			ID:        string(pod.UID),
+			IP:        pod.Status.PodIP,
+			Port:      cr.Spec.Mongod.Net.Port,
+			PodName:   pod.ObjectMeta.Name,
+			NodeName:  pod.Status.HostIP,
+			PodStatus: string(pod.Status.Phase),
 		}
 		if primaryName == node.PodName {
 			node.Role = api.MongoDBClusterNodeRolePrimary
