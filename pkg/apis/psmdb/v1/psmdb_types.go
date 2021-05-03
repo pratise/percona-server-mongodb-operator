@@ -154,6 +154,26 @@ type PerconaServerMongoDBStatus struct {
 	PMMStatus          AppState                  `json:"pmmStatus,omitempty"`
 	PMMVersion         string                    `json:"pmmVersion,omitempty"`
 	Host               string                    `json:"host,omitempty"`
+	Nodes              []PerconaMongodbNode      `json:"nodes,omitempty"`
+}
+
+type PerconaMongoDBRole string
+
+const (
+	MongoDBClusterNodeRolePrimary   PerconaMongoDBRole = "Primary"
+	MongoDBClusterNodeRoleSecondary PerconaMongoDBRole = "Secondary"
+	MongoDBClusterNodeRoleNone      PerconaMongoDBRole = "None"
+)
+
+type PerconaMongodbNodes []PerconaMongodbNode
+
+type PerconaMongodbNode struct {
+	ID       string             `json:"id,omitempty"`
+	Role     PerconaMongoDBRole `json:"role,omitempty"`
+	IP       string             `json:"ip,omitempty"`
+	Port     int32              `json:"port,omitempty"`
+	PodName  string             `json:"pod_name,omitempty"`
+	NodeName string             `json:"node_name,omitempty"`
 }
 
 type ConditionStatus string

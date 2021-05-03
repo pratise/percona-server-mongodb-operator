@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	api "github.com/percona/percona-server-mongodb-operator/pkg/apis/psmdb/v1"
@@ -180,10 +181,14 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 		return clusterError, errors.Wrap(err, "unable to get replset members")
 	}
 
+	var primaryName string
 	membersLive := 0
 	for _, member := range rsStatus.Members {
 		switch member.State {
-		case mongo.MemberStatePrimary, mongo.MemberStateSecondary, mongo.MemberStateArbiter:
+		case mongo.MemberStatePrimary:
+			primaryName = strings.Split(member.Name, ".")[0]
+			membersLive++
+		case mongo.MemberStateSecondary, mongo.MemberStateArbiter:
 			membersLive++
 		case mongo.MemberStateStartup, mongo.MemberStateStartup2, mongo.MemberStateRecovering, mongo.MemberStateRollback:
 			return clusterInit, nil
@@ -191,6 +196,29 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			return clusterError, errors.Errorf("undefined state of the replset member %s: %v", member.Name, member.State)
 		}
 	}
+
+	nodes := api.PerconaMongodbNodes{}
+
+	for key, pod := range pods.Items {
+		if key >= mongo.MaxMembers {
+			log.Error(errReplsetLimit, "rs", replset.Name)
+			break
+		}
+		node := api.PerconaMongodbNode{
+			ID:       string(pod.UID),
+			IP:       pod.Status.PodIP,
+			Port:     cr.Spec.Mongod.Net.Port,
+			PodName:  pod.ObjectMeta.Name,
+			NodeName: pod.Status.HostIP,
+		}
+		if primaryName == node.PodName {
+			node.Role = api.MongoDBClusterNodeRolePrimary
+		} else {
+			node.Role = api.MongoDBClusterNodeRoleSecondary
+		}
+		nodes = append(nodes, node)
+	}
+	cr.Status.Nodes = nodes
 
 	if membersLive == len(pods.Items) {
 		return clusterReady, nil
