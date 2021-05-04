@@ -10,8 +10,8 @@ import (
 
 const (
 	agentContainerName           = "exporter-agent"
-	exporterUser                 = "MONGODB_USER_ADMIN_USER"
-	exporterPassword             = "MONGODB_USER_ADMIN_PASSWORD"
+	exporterUser                 = "MONGODB_CLUSTER_MONITOR_USER"
+	exporterPassword             = "MONGODB_CLUSTER_MONITOR_PASSWORD"
 	agentHealthStatusFilePathEnv = "AGENT_STATUS_FILEPATH"
 	awsAccessKeySecretKey        = "AWS_ACCESS_KEY_ID"
 	awsSecretAccessKeySecretKey  = "AWS_SECRET_ACCESS_KEY"
