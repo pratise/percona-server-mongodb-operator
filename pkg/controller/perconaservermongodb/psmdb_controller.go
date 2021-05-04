@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"github.com/percona/percona-server-mongodb-operator/pkg/psmdb/exporter"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -890,6 +891,17 @@ func (r *ReconcilePerconaServerMongoDB) sslAnnotation(cr *api.PerconaServerMongo
 	return annotation, nil
 }
 
+func (r *ReconcilePerconaServerMongoDB) exporterAnnotation() map[string]string {
+	annotation := make(map[string]string)
+	annotation["agent.mongodb.com/version"] = "1"
+	annotation["prometheus.io/app-metrics"] = "true"
+	annotation["prometheus.io/app-metrics-path"] = "/metrics"
+	annotation["prometheus.io/app-metrics-port"] = "9216"
+	annotation["prometheus.io/app-metrics-project"] = "system"
+	annotation["prometheus.io/scrapes"] = "true"
+	return annotation
+}
+
 // TODO: reduce cyclomatic complexity
 func (r *ReconcilePerconaServerMongoDB) reconcileStatefulSet(arbiter bool, cr *api.PerconaServerMongoDB,
 	replset *api.ReplsetSpec, matchLabels map[string]string, internalKeyName string) (*appsv1.StatefulSet, error) {
@@ -1028,6 +1040,19 @@ func (r *ReconcilePerconaServerMongoDB) reconcileStatefulSet(arbiter bool, cr *a
 			sfsSpec.Template.Spec.Containers = append(sfsSpec.Template.Spec.Containers, agentC)
 		}
 
+		if cr.Spec.Exporter.Enabled {
+			exporterSec := corev1.Secret{}
+			err := r.client.Get(context.TODO(), types.NamespacedName{Name: api.UserSecretName(cr), Namespace: cr.Namespace}, &exporterSec)
+			if err != nil {
+				return nil, errors.Wrap(err, "check pmm secrets")
+			}
+			agentC, err := exporter.AgentContainer(cr, exporterSec)
+			if err != nil {
+				return nil, errors.Wrap(err, "create a exporter container")
+			}
+			sfsSpec.Template.Spec.Containers = append(sfsSpec.Template.Spec.Containers, agentC)
+		}
+
 		if cr.Spec.PMM.Enabled {
 			pmmsec := corev1.Secret{}
 			err := r.client.Get(context.TODO(), types.NamespacedName{Name: api.UserSecretName(cr), Namespace: cr.Namespace}, &pmmsec)
@@ -1062,6 +1087,11 @@ func (r *ReconcilePerconaServerMongoDB) reconcileStatefulSet(arbiter bool, cr *a
 		return nil, errors.Wrap(err, "failed to get ssl annotations")
 	}
 	for k, v := range sslAnn {
+		sfsSpec.Template.Annotations[k] = v
+	}
+
+	exporterAnn := r.exporterAnnotation()
+	for k, v := range exporterAnn {
 		sfsSpec.Template.Annotations[k] = v
 	}
 

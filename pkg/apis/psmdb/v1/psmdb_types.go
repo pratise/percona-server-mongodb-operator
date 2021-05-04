@@ -66,6 +66,7 @@ type PerconaServerMongoDBSpec struct {
 	ClusterServiceDNSSuffix string                               `json:"clusterServiceDNSSuffix,omitempty"`
 	Sharding                Sharding                             `json:"sharding,omitempty"`
 	InitImage               string                               `json:"initImage,omitempty"`
+	Exporter                ExporterSpec                         `json:"exporter,omitempty"`
 }
 
 const (
@@ -537,6 +538,12 @@ type Expose struct {
 	ExposeType               corev1.ServiceType `json:"exposeType,omitempty"`
 	LoadBalancerSourceRanges []string           `json:"loadBalancerSourceRanges,omitempty"`
 	ServiceAnnotations       map[string]string  `json:"serviceAnnotations,omitempty"`
+}
+
+type ExporterSpec struct {
+	Enabled   bool           `json:"enabled"`
+	Image     string         `json:"image,omitempty"`
+	Resources *ResourcesSpec `json:"resources,omitempty"`
 }
 
 // ServerVersion represents info about k8s / openshift server version
