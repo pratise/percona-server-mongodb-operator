@@ -198,7 +198,6 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 	}
 
 	nodes := api.PerconaMongodbNodes{}
-
 	for key, pod := range pods.Items {
 		if key >= mongo.MaxMembers {
 			log.Error(errReplsetLimit, "rs", replset.Name)
@@ -212,10 +211,19 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			NodeName:  pod.Status.HostIP,
 			PodStatus: string(pod.Status.Phase),
 		}
-		if primaryName == node.PodName {
-			node.Role = api.MongoDBClusterNodeRolePrimary
+		if replset.Expose.Enabled && replset.Expose.ExposeType == corev1.ServiceTypeNodePort {
+			memberNode := strings.Split(primaryName, ":")[0]
+			if memberNode == pod.Spec.NodeName {
+				node.Role = api.MongoDBClusterNodeRolePrimary
+			} else {
+				node.Role = api.MongoDBClusterNodeRoleSecondary
+			}
 		} else {
-			node.Role = api.MongoDBClusterNodeRoleSecondary
+			if primaryName == node.PodName {
+				node.Role = api.MongoDBClusterNodeRolePrimary
+			} else {
+				node.Role = api.MongoDBClusterNodeRoleSecondary
+			}
 		}
 		nodes = append(nodes, node)
 	}

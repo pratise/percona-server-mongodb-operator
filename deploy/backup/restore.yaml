@@ -1,10 +1,10 @@
 apiVersion: psmdb.percona.com/v1
 kind: PerconaServerMongoDBRestore
 metadata:
-  name: restore1
+  name: restore6
 spec:
-  clusterName: my-cluster-name
-  backupName: backup1
-#  pitr:
-#    type: date
-#    date: YYYY-MM-DD HH:MM:SS
+  clusterName: mg13a64c-e183-452d-b178-f5c2df0db68d
+  backupName: 117e7fa9-6551-40b0-a05e-b2178a80a391
+  pitr:
+    type: date
+    date: "2021-05-08 11:59:13"
