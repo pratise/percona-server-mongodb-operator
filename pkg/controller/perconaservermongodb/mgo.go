@@ -186,7 +186,11 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 	for _, member := range rsStatus.Members {
 		switch member.State {
 		case mongo.MemberStatePrimary:
-			primaryName = strings.Split(member.Name, ".")[0]
+			if len(member.Name) >= 32 {
+				primaryName = strings.Split(member.Name, ".")[0]
+			} else {
+				primaryName = strings.Split(member.Name, ":")[0]
+			}
 			membersLive++
 		case mongo.MemberStateSecondary, mongo.MemberStateArbiter:
 			membersLive++
@@ -211,9 +215,9 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			NodeName:  pod.Status.HostIP,
 			PodStatus: string(pod.Status.Phase),
 		}
+
 		if replset.Expose.Enabled && replset.Expose.ExposeType == corev1.ServiceTypeNodePort {
-			memberNode := strings.Split(primaryName, ":")[0]
-			if memberNode == pod.Spec.NodeName {
+			if primaryName == pod.Spec.NodeName {
 				node.Role = api.MongoDBClusterNodeRolePrimary
 			} else {
 				node.Role = api.MongoDBClusterNodeRoleSecondary
