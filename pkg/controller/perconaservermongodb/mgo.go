@@ -202,6 +202,10 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 	}
 
 	nodes := api.PerconaMongodbNodes{}
+	if len(cr.Status.Nodes) > 0 {
+		nodes = cr.Status.Nodes
+	}
+
 	for key, pod := range pods.Items {
 		if key >= mongo.MaxMembers {
 			log.Error(errReplsetLimit, "rs", replset.Name)

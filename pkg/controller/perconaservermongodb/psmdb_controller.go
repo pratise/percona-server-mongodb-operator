@@ -317,6 +317,7 @@ func (r *ReconcilePerconaServerMongoDB) Reconcile(request reconcile.Request) (re
 	}
 
 	shards := 0
+	cr.Status.Nodes = api.PerconaMongodbNodes{}
 	for _, replset := range repls {
 		if (cr.Spec.Sharding.Enabled && replset.ClusterRole == api.ClusterRoleShardSvr) ||
 			!cr.Spec.Sharding.Enabled {
