@@ -67,6 +67,7 @@ type PerconaServerMongoDBSpec struct {
 	Sharding                Sharding                             `json:"sharding,omitempty"`
 	InitImage               string                               `json:"initImage,omitempty"`
 	Exporter                ExporterSpec                         `json:"exporter,omitempty"`
+	Init                    InitSpec                             `json:"init,omitempty"`
 }
 
 const (
@@ -156,6 +157,7 @@ type PerconaServerMongoDBStatus struct {
 	PMMVersion         string                    `json:"pmmVersion,omitempty"`
 	Host               string                    `json:"host,omitempty"`
 	Nodes              []PerconaMongodbNode      `json:"nodes,omitempty"`
+	Restore            *Restore                   `json:"restore,omitempty"`
 }
 
 type PerconaMongoDBRole string
@@ -176,6 +178,13 @@ type PerconaMongodbNode struct {
 	PodName   string             `json:"pod_name,omitempty"`
 	PodStatus string             `json:"pod_status,omitempty"`
 	NodeName  string             `json:"node_name,omitempty"`
+}
+
+type Restore struct {
+	RestoreID  string `json:"restoreID,omitempty"`
+	BackupID   string `json:"backupID,omitempty"`
+	OriginalID string `json:"originalID,omitempty"`
+	Init       bool   `json:"init,omitempty"`
 }
 
 type ConditionStatus string
@@ -546,6 +555,11 @@ type ExporterSpec struct {
 	Resources *ResourcesSpec `json:"resources,omitempty"`
 }
 
+type InitSpec struct {
+	Enabled     bool                         `json:"enable"`
+	RestoreSpec *PerconaServerMongoDBRestore `json:"restoreSpec,omitempty"`
+}
+
 // ServerVersion represents info about k8s / openshift server version
 type ServerVersion struct {
 	Platform version.Platform
@@ -605,7 +619,7 @@ func (cr *PerconaServerMongoDB) CompareVersion(version string) int {
 		cr.setVersion()
 	}
 
-	//using Must because "version" must be right format
+	// using Must because "version" must be right format
 	return cr.Version().Compare(v.Must(v.NewVersion(version)))
 }
 

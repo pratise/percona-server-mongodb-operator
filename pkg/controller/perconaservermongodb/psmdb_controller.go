@@ -7,6 +7,7 @@ import (
 	"github.com/percona/percona-server-mongodb-operator/pkg/psmdb/exporter"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -463,6 +464,10 @@ func (r *ReconcilePerconaServerMongoDB) Reconcile(request reconcile.Request) (re
 
 	// DB cluster can be not ready yet so it's requeued after some time
 	if err = r.updatePITR(cr); err != nil {
+		return rr, err
+	}
+
+	if err = r.initRestore(cr); err != nil {
 		return rr, err
 	}
 
@@ -1214,6 +1219,59 @@ func (r *ReconcilePerconaServerMongoDB) createOrUpdate(currentObj runtime.Object
 	}
 
 	return nil
+}
+
+func (r *ReconcilePerconaServerMongoDB) initRestore(cr *api.PerconaServerMongoDB) error {
+	// 如果集群状态为ready状态，并群开启了恢复新实例使用
+	if cr.Status.State == api.AppStateReady && cr.Spec.Init.Enabled {
+		// 恢复新实例只执行一次，创建restore的cr对象，并对状态进行标记
+		spec := cr.Spec.Init.RestoreSpec
+		if cr.Status.Restore == nil {
+			cr.Status.Restore = &api.Restore{
+				RestoreID:  spec.Name,
+				BackupID:   spec.Spec.BackupName,
+				OriginalID: cr.Name,
+				Init:       false,
+			}
+		}
+		if !cr.Status.Restore.Init {
+			if err := r.client.Create(context.TODO(), spec); err != nil {
+				matchString, _ := regexp.MatchString(fmt.Sprintf("perconaservermongodbrestores.psmdb.percona.com \"%s\" already exists", spec.Name), err.Error())
+				if !matchString {
+					log.Error(err, "failed to create init mongodb restore", "psmdb", cr.Name)
+					return errors.Wrapf(err, "failed to create init mongodb restore for psmdb %s", cr.Name)
+				}else {
+					// 已经创建备份恢复文件则更改其状态为true
+					cr.Status.Restore.Init = true
+				}
+			}
+		}
+		// 第二次operator检查时，查看restore的cr对象是否已经完成为ready状态，如果没有完成则报错，进行下次检查；
+		running, err := r.isRestoreRunning(cr)
+		if err != nil {
+			return errors.Wrap(err, "failed to check running restore")
+		}
+		// 返回ture则表示目前有集群正在恢复，则直接退出
+		if running {
+			return nil
+		}
+		r.initRestoreStatus(cr, spec)
+	}
+	return nil
+
+}
+
+func (r *ReconcilePerconaServerMongoDB) initRestoreStatus(cr *api.PerconaServerMongoDB, spec *api.PerconaServerMongoDBRestore) {
+	// 如果已经为ready状态，则将Init.Enabled改为false，后续将不再进入此方法
+	cr.Spec.Init.Enabled = false
+	// 另外需要将cr中bucket的桶替换为新实例的bucket桶，其bucket为cr名称
+	s3 := cr.Spec.Backup.Storages["ceph-s3"]
+	s3.S3.Bucket = cr.Name
+	cr.Spec.Backup.Storages["ceph-s3"] = s3
+	err := r.client.Update(context.TODO(), cr)
+	if err != nil {
+		return
+	}
 }
 
 func setControllerReference(owner runtime.Object, obj metav1.Object, scheme *runtime.Scheme) error {
