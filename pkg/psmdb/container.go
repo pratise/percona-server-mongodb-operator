@@ -33,6 +33,10 @@ func container(cr *api.PerconaServerMongoDB, replset *api.ReplsetSpec, name stri
 			MountPath: sslInternalDir,
 			ReadOnly:  true,
 		},
+		{
+			Name:      timezone,
+			MountPath: timezoneDir,
+		},
 	}
 
 	if *cr.Spec.Mongod.Security.EnableEncryption {
@@ -217,7 +221,7 @@ func containerArgs(m *api.PerconaServerMongoDB, replset *api.ReplsetSpec, resour
 			args = append(args, "--directoryperdb")
 		}
 		if replset.Storage.SyncPeriodSecs > 0 {
-			args = append(args, "--syncdelay="+strconv.Itoa(replset.Storage.SyncPeriodSecs))
+			args = append(args, "--syncdelay="+strconv .Itoa(replset.Storage.SyncPeriodSecs))
 		}
 	}
 

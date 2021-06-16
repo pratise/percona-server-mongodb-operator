@@ -155,15 +155,16 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 		members = append(members, member)
 	}
 
-	if cnf.Members.RemoveOld(members) {
-		cnf.Members.SetVotes()
+	// if cnf.Members.RemoveOld(members) {
+	// 	cnf.Members.SetVotes()
+	//
+	// 	cnf.Version++
+	// 	err = mongo.WriteConfig(context.TODO(), cli, cnf)
+	// 	if err != nil {
+	// 		return clusterError, errors.Wrap(err, "delete: write mongo config")
+	// 	}
+	// }
 
-		cnf.Version++
-		err = mongo.WriteConfig(context.TODO(), cli, cnf)
-		if err != nil {
-			return clusterError, errors.Wrap(err, "delete: write mongo config")
-		}
-	}
 
 	if cnf.Members.AddNew(members) {
 		cnf.Members.RemoveOld(members)

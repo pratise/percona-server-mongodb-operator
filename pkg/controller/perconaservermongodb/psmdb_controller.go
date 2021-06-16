@@ -173,7 +173,6 @@ const (
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcilePerconaServerMongoDB) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	logger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-
 	rr := reconcile.Result{
 		RequeueAfter: r.reconcileIn,
 	}
@@ -1000,6 +999,18 @@ func (r *ReconcilePerconaServerMongoDB) reconcileStatefulSet(arbiter bool, cr *a
 			},
 		},
 	)
+
+	sfsSpec.Template.Spec.Volumes = append(sfsSpec.Template.Spec.Volumes,
+		corev1.Volume{
+			Name: "timezone",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/usr/share/zoneinfo/Asia/Shanghai",
+				},
+			},
+		},
+	)
+
 	if cr.CompareVersion("1.8.0") >= 0 {
 		sfsSpec.Template.Spec.Volumes = append(sfsSpec.Template.Spec.Volumes,
 			corev1.Volume{
@@ -1240,7 +1251,7 @@ func (r *ReconcilePerconaServerMongoDB) initRestore(cr *api.PerconaServerMongoDB
 				if !matchString {
 					log.Error(err, "failed to create init mongodb restore", "psmdb", cr.Name)
 					return errors.Wrapf(err, "failed to create init mongodb restore for psmdb %s", cr.Name)
-				}else {
+				} else {
 					// 已经创建备份恢复文件则更改其状态为true
 					cr.Status.Restore.Init = true
 				}

@@ -58,6 +58,12 @@ func AgentContainer(cr *api.PerconaServerMongoDB, replsetName string, replsetSiz
 				Value: strconv.Itoa(int(cr.Spec.Mongod.Net.Port)),
 			},
 		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "timezone",
+				MountPath: "/etc/localtime",
+			},
+		},
 		SecurityContext: cr.Spec.Backup.ContainerSecurityContext,
 		Resources:       res,
 	}

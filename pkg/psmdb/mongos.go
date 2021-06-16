@@ -127,6 +127,10 @@ func mongosContainer(cr *api.PerconaServerMongoDB) (corev1.Container, error) {
 			MountPath: sslInternalDir,
 			ReadOnly:  true,
 		},
+		{
+			Name:      timezone,
+			MountPath: timezoneDir,
+		},
 	}
 
 	if cr.CompareVersion("1.8.0") >= 0 {
@@ -294,6 +298,14 @@ func volumes(cr *api.PerconaServerMongoDB) []corev1.Volume {
 			Name: MongodDataVolClaimName,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: timezone,
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/usr/share/zoneinfo/Asia/Shanghai",
+				},
 			},
 		},
 	}
