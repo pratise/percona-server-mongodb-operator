@@ -157,7 +157,7 @@ type PerconaServerMongoDBStatus struct {
 	PMMVersion         string                    `json:"pmmVersion,omitempty"`
 	Host               string                    `json:"host,omitempty"`
 	Nodes              []PerconaMongodbNode      `json:"nodes,omitempty"`
-	Restore            *Restore                   `json:"restore,omitempty"`
+	Restore            *Restore                  `json:"restore,omitempty"`
 }
 
 type PerconaMongoDBRole string
@@ -557,6 +557,7 @@ type ExporterSpec struct {
 
 type InitSpec struct {
 	Enabled     bool                         `json:"enable"`
+	Bucket      string                       `json:"bucket"`
 	RestoreSpec *PerconaServerMongoDBRestore `json:"restoreSpec,omitempty"`
 }
 

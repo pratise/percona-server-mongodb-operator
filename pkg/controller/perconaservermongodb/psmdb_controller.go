@@ -1277,7 +1277,7 @@ func (r *ReconcilePerconaServerMongoDB) initRestoreStatus(cr *api.PerconaServerM
 	cr.Spec.Init.Enabled = false
 	// 另外需要将cr中bucket的桶替换为新实例的bucket桶，其bucket为cr名称
 	s3 := cr.Spec.Backup.Storages["ceph-s3"]
-	s3.S3.Bucket = cr.Name
+	s3.S3.Bucket = cr.Spec.Init.Bucket
 	cr.Spec.Backup.Storages["ceph-s3"] = s3
 	err := r.client.Update(context.TODO(), cr)
 	if err != nil {
