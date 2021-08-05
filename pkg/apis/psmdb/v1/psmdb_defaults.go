@@ -13,7 +13,7 @@ import (
 )
 
 // DefaultDNSSuffix is a default dns suffix for the cluster service
-const DefaultDNSSuffix = "svc.cluster.local"
+const DefaultDNSSuffix = "svc.cluster.local."
 
 // ConfigReplSetName is the only possible name for config replica set
 const ConfigReplSetName = "cfg"

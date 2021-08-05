@@ -67,6 +67,8 @@ type PerconaServerMongoDBSpec struct {
 	ClusterServiceDNSSuffix string                               `json:"clusterServiceDNSSuffix,omitempty"`
 	Sharding                Sharding                             `json:"sharding,omitempty"`
 	InitImage               string                               `json:"initImage,omitempty"`
+	Exporter                ExporterSpec                         `json:"exporter,omitempty"`
+	Init                    InitSpec                             `json:"init,omitempty"`
 }
 
 const (
@@ -159,6 +161,35 @@ type PerconaServerMongoDBStatus struct {
 	Host               string                    `json:"host,omitempty"`
 	Size               int32                     `json:"size"`
 	Ready              int32                     `json:"ready"`
+	Nodes              []PerconaMongodbNode      `json:"nodes,omitempty"`
+	Restore            *Restore                  `json:"restore,omitempty"`
+}
+
+type PerconaMongoDBRole string
+
+const (
+	MongoDBClusterNodeRolePrimary   PerconaMongoDBRole = "Primary"
+	MongoDBClusterNodeRoleSecondary PerconaMongoDBRole = "Secondary"
+	MongoDBClusterNodeRoleNone      PerconaMongoDBRole = "None"
+)
+
+type PerconaMongodbNodes []PerconaMongodbNode
+
+type PerconaMongodbNode struct {
+	ID        string             `json:"id,omitempty"`
+	Role      PerconaMongoDBRole `json:"role,omitempty"`
+	IP        string             `json:"ip,omitempty"`
+	Port      int32              `json:"port,omitempty"`
+	PodName   string             `json:"pod_name,omitempty"`
+	PodStatus string             `json:"pod_status,omitempty"`
+	NodeName  string             `json:"node_name,omitempty"`
+}
+
+type Restore struct {
+	RestoreID  string `json:"restoreID,omitempty"`
+	BackupID   string `json:"backupID,omitempty"`
+	OriginalID string `json:"originalID,omitempty"`
+	Init       bool   `json:"init,omitempty"`
 }
 
 type ConditionStatus string
@@ -522,6 +553,18 @@ type Expose struct {
 	ServiceAnnotations       map[string]string  `json:"serviceAnnotations,omitempty"`
 }
 
+type ExporterSpec struct {
+	Enabled   bool           `json:"enabled"`
+	Image     string         `json:"image,omitempty"`
+	Resources *ResourcesSpec `json:"resources,omitempty"`
+}
+
+type InitSpec struct {
+	Enabled     bool                         `json:"enable"`
+	Bucket      string                       `json:"bucket"`
+	RestoreSpec *PerconaServerMongoDBRestore `json:"restoreSpec,omitempty"`
+}
+
 // ServerVersion represents info about k8s / openshift server version
 type ServerVersion struct {
 	Platform version.Platform
@@ -581,7 +624,7 @@ func (cr *PerconaServerMongoDB) CompareVersion(version string) int {
 		cr.setVersion()
 	}
 
-	//using Must because "version" must be right format
+	// using Must because "version" must be right format
 	return cr.Version().Compare(v.Must(v.NewVersion(version)))
 }
 

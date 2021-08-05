@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	api "github.com/percona/percona-server-mongodb-operator/pkg/apis/psmdb/v1"
@@ -184,10 +185,18 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 		return api.AppStateError, errors.Wrap(err, "unable to get replset members")
 	}
 
+	var primaryName string
 	membersLive := 0
 	for _, member := range rsStatus.Members {
 		switch member.State {
-		case mongo.MemberStatePrimary, mongo.MemberStateSecondary, mongo.MemberStateArbiter:
+		case mongo.MemberStatePrimary:
+			if len(member.Name) >= 32 {
+				primaryName = strings.Split(member.Name, ".")[0]
+			} else {
+				primaryName = strings.Split(member.Name, ":")[0]
+			}
+			membersLive++
+		case mongo.MemberStateSecondary, mongo.MemberStateArbiter:
 			membersLive++
 		case mongo.MemberStateStartup, mongo.MemberStateStartup2, mongo.MemberStateRecovering, mongo.MemberStateRollback:
 			return api.AppStateInit, nil
@@ -195,6 +204,42 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			return api.AppStateError, errors.Errorf("undefined state of the replset member %s: %v", member.Name, member.State)
 		}
 	}
+
+	nodes := api.PerconaMongodbNodes{}
+	if len(cr.Status.Nodes) > 0 {
+		nodes = cr.Status.Nodes
+	}
+
+	for key, pod := range pods.Items {
+		if key >= mongo.MaxMembers {
+			log.Error(errReplsetLimit, "rs", replset.Name)
+			break
+		}
+		node := api.PerconaMongodbNode{
+			ID:        string(pod.UID),
+			IP:        pod.Status.PodIP,
+			Port:      cr.Spec.Mongod.Net.Port,
+			PodName:   pod.ObjectMeta.Name,
+			NodeName:  pod.Status.HostIP,
+			PodStatus: string(pod.Status.Phase),
+		}
+
+		if replset.Expose.Enabled && replset.Expose.ExposeType == corev1.ServiceTypeNodePort {
+			if primaryName == pod.Spec.NodeName {
+				node.Role = api.MongoDBClusterNodeRolePrimary
+			} else {
+				node.Role = api.MongoDBClusterNodeRoleSecondary
+			}
+		} else {
+			if primaryName == node.PodName {
+				node.Role = api.MongoDBClusterNodeRolePrimary
+			} else {
+				node.Role = api.MongoDBClusterNodeRoleSecondary
+			}
+		}
+		nodes = append(nodes, node)
+	}
+	cr.Status.Nodes = nodes
 
 	if membersLive == len(pods.Items) {
 		return api.AppStateReady, nil

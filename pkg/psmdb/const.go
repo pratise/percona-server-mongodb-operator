@@ -24,6 +24,10 @@ const (
 	EncryptionKeyName    = "encryption-key"
 	mongodPortName       = "mongodb"
 	mongosPortName       = "mongos"
+
+	// TimeZone
+	timezone    = "timezone"
+	timezoneDir = "/etc/localtime"
 )
 
 func InternalKey(cr *api.PerconaServerMongoDB) string {

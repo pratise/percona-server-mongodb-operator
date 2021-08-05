@@ -465,7 +465,10 @@ func (m *ConfigMembers) AddNew(from ConfigMembers) (changes bool) {
 			changes = true
 		}
 	}
-
+	// 如果from与m的长度不一致,说明有进行扩缩容操作
+	if len(from) != len(*m) {
+		changes = true
+	}
 	return changes
 }
 

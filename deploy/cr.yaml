@@ -146,9 +146,18 @@ spec:
         resources:
           requests:
             storage: 3Gi
-
+  exporter:
+    enabled: false
+    image: "hub.51idc.com/operators/mongodb-exporter:v0.20.1"
+    resources:
+      limits:
+        cpu: "300m"
+        memory: "0.5G"
+      requests:
+        cpu: "300m"
+        memory: "0.5G"
   sharding:
-    enabled: true
+    enabled: false
 
     configsvrReplSet:
       size: 3

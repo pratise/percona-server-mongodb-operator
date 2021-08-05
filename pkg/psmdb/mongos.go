@@ -143,6 +143,10 @@ func mongosContainer(cr *api.PerconaServerMongoDB, useConfigFile bool) (corev1.C
 			MountPath: sslInternalDir,
 			ReadOnly:  true,
 		},
+		{
+			Name:      timezone,
+			MountPath: timezoneDir,
+		},
 	}
 
 	if useConfigFile {
@@ -321,6 +325,14 @@ func volumes(cr *api.PerconaServerMongoDB, configSource VolumeSourceType) []core
 			Name: MongodDataVolClaimName,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: timezone,
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/usr/share/zoneinfo/Asia/Shanghai",
+				},
 			},
 		},
 	}

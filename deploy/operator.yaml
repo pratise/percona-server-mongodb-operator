@@ -37,3 +37,22 @@ spec:
               value: 5s
             - name: LOG_VERBOSE
               value: "false"
+          volumeMounts:
+            - name: timezone
+              mountPath: /etc/localtime
+      volumes:
+        - name: timezone
+          hostPath:
+            path: "/usr/share/zoneinfo/Asia/Shanghai"
+#      affinity:
+#        nodeAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#            nodeSelectorTerms:
+#              - matchExpressions:
+#                  - key: kubernetes.io/hostname
+#                    operator: In
+#                    values:
+#                      - 192.168.101.82
+#                      - 192.168.101.93
+#                      - 192.168.101.96
+#                      - 192.168.101.97
