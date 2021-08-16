@@ -1,7 +1,7 @@
 apiVersion: psmdb.percona.com/v1-9-0
 kind: PerconaServerMongoDB
 metadata:
-  name: my-cluster-name
+  name: my-cluster-name1
 #  finalizers:
 #    - delete-psmdb-pvc
 spec:
@@ -15,12 +15,14 @@ spec:
 #    - name: private-registry-credentials
 #  runUid: 1001
   allowUnsafeConfigurations: false
-  updateStrategy: SmartUpdate
-  upgradeOptions:
-    versionServiceEndpoint: https://check.percona.com
-    apply: 4.4-recommended
-    schedule: "0 2 * * *"
-    setFCV: false
+  updateStrategy: RollingUpdate
+#  upgradeOptions:
+#    versionServiceEndpoint: https://check.percona.com
+#    apply: 4.4-recommended
+#    schedule: "0 2 * * *"
+#    setFCV: false
+#  initImage: hub.51idc.com/operators/mongodb-percona-operator:v1.9.0-migu-test
+  initImage: percona/percona-server-mongodb-operator:1.9.0
   secrets:
     users: my-cluster-name-secrets
   pmm:
@@ -141,13 +143,13 @@ spec:
 #        path: /data
 #        type: Directory
       persistentVolumeClaim:
-#        storageClassName: standard
-#        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: smartops-nfs-storage
+        accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
             storage: 3Gi
   exporter:
-    enabled: false
+    enabled: true
     image: "hub.51idc.com/operators/mongodb-exporter:v0.20.1"
     resources:
       limits:
@@ -223,8 +225,8 @@ spec:
 #         path: /data
 #         type: Directory
         persistentVolumeClaim:
-#          storageClassName: standard
-#          accessModes: [ "ReadWriteOnce" ]
+          storageClassName: "smartops-nfs-storage"
+          accessModes: [ "ReadWriteOnce" ]
           resources:
             requests:
               storage: 3Gi

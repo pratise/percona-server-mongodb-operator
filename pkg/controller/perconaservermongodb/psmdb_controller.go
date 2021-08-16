@@ -1030,13 +1030,17 @@ func (r *ReconcilePerconaServerMongoDB) sslAnnotation(cr *api.PerconaServerMongo
 	return annotation, nil
 }
 
-func (r *ReconcilePerconaServerMongoDB) exporterAnnotation() map[string]string {
+func (r *ReconcilePerconaServerMongoDB) exporterAnnotation(cr *api.PerconaServerMongoDB) map[string]string {
 	annotation := make(map[string]string)
 	annotation["agent.mongodb.com/version"] = "1"
 	annotation["prometheus.io/app-metrics"] = "true"
 	annotation["prometheus.io/app-metrics-path"] = "/metrics"
 	annotation["prometheus.io/app-metrics-port"] = "9216"
-	annotation["prometheus.io/app-metrics-project"] = "system"
+	if cr.Spec.Exporter.ProjectName != "" {
+		annotation["prometheus.io/app-metrics-project"] = cr.Spec.Exporter.ProjectName
+	} else {
+		annotation["prometheus.io/app-metrics-project"] = "system"
+	}
 	annotation["prometheus.io/scrapes"] = "true"
 	return annotation
 }
@@ -1251,7 +1255,7 @@ func (r *ReconcilePerconaServerMongoDB) reconcileStatefulSet(arbiter bool, cr *a
 		sfsSpec.Template.Annotations[k] = v
 	}
 
-	exporterAnn := r.exporterAnnotation()
+	exporterAnn := r.exporterAnnotation(cr)
 	for k, v := range exporterAnn {
 		sfsSpec.Template.Annotations[k] = v
 	}

@@ -554,9 +554,10 @@ type Expose struct {
 }
 
 type ExporterSpec struct {
-	Enabled   bool           `json:"enabled"`
-	Image     string         `json:"image,omitempty"`
-	Resources *ResourcesSpec `json:"resources,omitempty"`
+	Enabled     bool           `json:"enabled"`
+	ProjectName string         `json:"project_name"`
+	Image       string         `json:"image,omitempty"`
+	Resources   *ResourcesSpec `json:"resources,omitempty"`
 }
 
 type InitSpec struct {
