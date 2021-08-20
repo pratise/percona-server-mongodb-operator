@@ -432,7 +432,7 @@ func (m *ConfigMembers) RemoveOld(compareWith ConfigMembers) (changes bool) {
 	for _, member := range compareWith {
 		cm[member.Host] = struct{}{}
 	}
-	// todo:此方法存在bug，假如进入的mongodb实例并不是最小id的成员信息，则会报"No host described in new configuration with {version: 776274, term: -1} for replica set rs0 maps to this node"
+	// todo:此算法存在bug，假如进入的mongodb实例并不是最小id的成员信息，则会报"No host described in new configuration with {version: 776274, term: -1} for replica set rs0 maps to this node"
 	// going from the end to the starting in order to leave last element with the smallest id
 	for i := len(*m) - 1; i >= 0 && len(*m) > 1; i-- {
 		member := []ConfigMember(*m)[i]
