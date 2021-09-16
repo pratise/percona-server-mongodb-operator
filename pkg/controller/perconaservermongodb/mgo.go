@@ -185,16 +185,49 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 		return api.AppStateError, errors.Wrap(err, "unable to get replset members")
 	}
 
-	var primaryName string
 	membersLive := 0
+	nodes := api.PerconaMongodbNodes{}
+
+	if len(cr.Status.Nodes) > 0 {
+		nodes = cr.Status.Nodes
+	}
+	roleMembers := rsStatus.Members
+	for _, pod := range pods.Items {
+		for key, member := range roleMembers {
+			if key >= mongo.MaxMembers {
+				log.Error(errReplsetLimit, "rs", replset.Name)
+				break
+			}
+			var nodeRole string
+			if replset.Expose.Enabled && replset.Expose.ExposeType == corev1.ServiceTypeNodePort {
+				if pod.Status.HostIP == strings.Split(member.Name, ":")[0] {
+					nodeRole = mongo.MemberStateStrings[member.State]
+				}
+			} else {
+				if pod.ObjectMeta.Name == strings.Split(member.Name, ".")[0] {
+					nodeRole = mongo.MemberStateStrings[member.State]
+				}
+			}
+			if nodeRole != "" {
+				node := api.PerconaMongodbNode{
+					ID:        string(pod.UID),
+					IP:        pod.Status.PodIP,
+					Port:      cr.Spec.Mongod.Net.Port,
+					PodName:   pod.ObjectMeta.Name,
+					NodeName:  pod.Status.HostIP,
+					PodStatus: string(pod.Status.Phase),
+					Role:      nodeRole,
+				}
+				roleMembers = append(roleMembers[:key], roleMembers[key:]...)
+				nodes = append(nodes, node)
+				break
+			}
+		}
+	}
+	cr.Status.Nodes = nodes
 	for _, member := range rsStatus.Members {
 		switch member.State {
 		case mongo.MemberStatePrimary:
-			if len(member.Name) >= 32 {
-				primaryName = strings.Split(member.Name, ".")[0]
-			} else {
-				primaryName = strings.Split(member.Name, ":")[0]
-			}
 			membersLive++
 		case mongo.MemberStateSecondary, mongo.MemberStateArbiter:
 			membersLive++
@@ -204,42 +237,6 @@ func (r *ReconcilePerconaServerMongoDB) reconcileCluster(cr *api.PerconaServerMo
 			return api.AppStateError, errors.Errorf("undefined state of the replset member %s: %v", member.Name, member.State)
 		}
 	}
-
-	nodes := api.PerconaMongodbNodes{}
-	if len(cr.Status.Nodes) > 0 {
-		nodes = cr.Status.Nodes
-	}
-
-	for key, pod := range pods.Items {
-		if key >= mongo.MaxMembers {
-			log.Error(errReplsetLimit, "rs", replset.Name)
-			break
-		}
-		node := api.PerconaMongodbNode{
-			ID:        string(pod.UID),
-			IP:        pod.Status.PodIP,
-			Port:      cr.Spec.Mongod.Net.Port,
-			PodName:   pod.ObjectMeta.Name,
-			NodeName:  pod.Status.HostIP,
-			PodStatus: string(pod.Status.Phase),
-		}
-
-		if replset.Expose.Enabled && replset.Expose.ExposeType == corev1.ServiceTypeNodePort {
-			if primaryName == pod.Spec.NodeName {
-				node.Role = api.MongoDBClusterNodeRolePrimary
-			} else {
-				node.Role = api.MongoDBClusterNodeRoleSecondary
-			}
-		} else {
-			if primaryName == node.PodName {
-				node.Role = api.MongoDBClusterNodeRolePrimary
-			} else {
-				node.Role = api.MongoDBClusterNodeRoleSecondary
-			}
-		}
-		nodes = append(nodes, node)
-	}
-	cr.Status.Nodes = nodes
 
 	if membersLive == len(pods.Items) {
 		return api.AppStateReady, nil

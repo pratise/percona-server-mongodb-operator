@@ -176,13 +176,13 @@ const (
 type PerconaMongodbNodes []PerconaMongodbNode
 
 type PerconaMongodbNode struct {
-	ID        string             `json:"id,omitempty"`
-	Role      PerconaMongoDBRole `json:"role,omitempty"`
-	IP        string             `json:"ip,omitempty"`
-	Port      int32              `json:"port,omitempty"`
-	PodName   string             `json:"pod_name,omitempty"`
-	PodStatus string             `json:"pod_status,omitempty"`
-	NodeName  string             `json:"node_name,omitempty"`
+	ID        string `json:"id,omitempty"`
+	Role      string `json:"role,omitem：pty"`
+	IP        string `json:"ip,omitempty"`
+	Port      int32  `json:"port,omitempty"`
+	PodName   string `json:"pod_name,omitempty"`
+	PodStatus string `json:"pod_status,omitempty"`
+	NodeName  string `json:"node_name,omitempty"`
 }
 
 type Restore struct {
