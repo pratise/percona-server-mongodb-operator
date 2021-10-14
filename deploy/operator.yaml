@@ -15,7 +15,7 @@ spec:
       serviceAccountName: percona-server-mongodb-operator
       containers:
         - name: percona-server-mongodb-operator
-          image: hub.51idc.com/operators/mongodb-percona-operator:v1.9.0-migu-0913
+          image: hub.51idc.com/operators/mongodb-percona-operator:v1.9.1-migu-test
           ports:
           - containerPort: 60000
             name: metrics

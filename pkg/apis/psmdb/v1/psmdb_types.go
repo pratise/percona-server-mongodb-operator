@@ -558,6 +558,7 @@ type ExporterSpec struct {
 	ProjectName string         `json:"project_name"`
 	Image       string         `json:"image,omitempty"`
 	Resources   *ResourcesSpec `json:"resources,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
 }
 
 type InitSpec struct {
