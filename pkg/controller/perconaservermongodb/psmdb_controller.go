@@ -76,7 +76,7 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		client:        mgr.GetClient(),
 		scheme:        mgr.GetScheme(),
 		serverVersion: sv,
-		reconcileIn:   time.Second * 5,
+		reconcileIn:   time.Second * 10,
 		crons:         NewCronRegistry(),
 		lockers:       newLockStore(),
 
@@ -1041,7 +1041,9 @@ func (r *ReconcilePerconaServerMongoDB) exporterAnnotation(cr *api.PerconaServer
 	} else {
 		annotation["prometheus.io/app-metrics-project"] = "system"
 	}
+	annotation["prometheus.io/app-metrics-paas-cluster"] = cr.Name
 	annotation["prometheus.io/scrapes"] = "true"
+	annotation["prometheus.io/app-metrics-paas-tags"] = strings.Join(cr.Spec.Exporter.Tags, ",")
 	return annotation
 }
 
@@ -1447,26 +1449,52 @@ func (r *ReconcilePerconaServerMongoDB) initRestore(cr *api.PerconaServerMongoDB
 				Init:       false,
 			}
 		}
-		if !cr.Status.Restore.Init {
+		curRestore := &api.PerconaServerMongoDBRestore{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       api.SchemeGroupVersion.Group,
+				APIVersion: api.SchemeGroupVersion.Version,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      spec.Name,
+				Namespace: cr.Namespace,
+			},
+		}
+		err := r.client.Get(context.TODO(), types.NamespacedName{
+			Namespace: curRestore.Namespace,
+			Name:      curRestore.Name,
+		}, curRestore)
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get init restore mongodb for psmdb %s", cr.Name)
+		}
+		if k8serrors.IsNotFound(err) {
 			if err := r.client.Create(context.TODO(), spec); err != nil {
 				matchString, _ := regexp.MatchString(fmt.Sprintf("perconaservermongodbrestores.psmdb.percona.com \"%s\" already exists", spec.Name), err.Error())
 				if !matchString {
 					log.Error(err, "failed to create init mongodb restore", "psmdb", cr.Name)
 					return errors.Wrapf(err, "failed to create init mongodb restore for psmdb %s", cr.Name)
-				} else {
-					// 已经创建备份恢复文件则更改其状态为true
-					cr.Status.Restore.Init = true
 				}
 			}
-		}
-		// 第二次operator检查时，查看restore的cr对象是否已经完成为ready状态，如果没有完成则报错，进行下次检查；
-		running, err := r.isRestoreRunning(cr)
-		if err != nil {
-			return errors.Wrap(err, "failed to check running restore")
-		}
-		// 返回ture则表示目前有集群正在恢复，则直接退出
-		if running {
 			return nil
+		}
+		if curRestore.Status.State == api.RestoreStateReady {
+			cr.Status.Restore.Init = true
+		} else if curRestore.Status.State == api.RestoreStateError {
+			err := r.client.Delete(context.TODO(), spec)
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete init mongodb restore for psmdb %s", cr.Name)
+			}
+			cr.Status.Restore.Init = false
+			return nil
+		} else {
+			// 第二次operator检查时，查看restore的cr对象是否已经完成为ready状态，如果没有完成则报错，进行下次检查；
+			running, err := r.isRestoreRunning(cr)
+			if err != nil {
+				return errors.Wrap(err, "failed to check running restore")
+			}
+			// 返回ture则表示目前有集群正在恢复，则直接退出
+			if running {
+				return nil
+			}
 		}
 		r.initRestoreStatus(cr, spec)
 	}
