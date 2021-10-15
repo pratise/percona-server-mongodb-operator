@@ -559,6 +559,7 @@ type ExporterSpec struct {
 	Image       string         `json:"image,omitempty"`
 	Resources   *ResourcesSpec `json:"resources,omitempty"`
 	Tags        []string       `json:"tags,omitempty"`
+	Name        string         `json:"name,omitempty"`
 }
 
 type InitSpec struct {

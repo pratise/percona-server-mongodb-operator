@@ -1041,7 +1041,7 @@ func (r *ReconcilePerconaServerMongoDB) exporterAnnotation(cr *api.PerconaServer
 	} else {
 		annotation["prometheus.io/app-metrics-project"] = "system"
 	}
-	annotation["prometheus.io/app-metrics-paas-cluster"] = cr.Name
+	annotation["prometheus.io/app-metrics-paas-cluster"] = cr.Spec.Exporter.Name
 	annotation["prometheus.io/scrapes"] = "true"
 	annotation["prometheus.io/app-metrics-paas-tags"] = strings.Join(cr.Spec.Exporter.Tags, ",")
 	return annotation
